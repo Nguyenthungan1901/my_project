@@ -1,0 +1,82 @@
+## **1. Thống kê số lần xuất hiện và thời gian thi đấu**
+
+```sql
+SELECT 
+    p.player_id,
+    p.name AS player_name, 
+    COUNT(a.appearance_id) AS total_appearances,
+    SUM(a.minutes_played) AS total_minutes_played
+FROM 
+    Players p
+INNER JOIN 
+    Appearance a ON p.player_id = a.player_id
+GROUP BY 
+    p.player_id, p.name
+ORDER BY 
+    total_appearances DESC, total_minutes_played DESC;
+## **Thống kê thông tin cầu thủ nước ngoài**
+
+```sql
+SELECT 
+    c.club_id, 
+    c.name AS club_name, 
+    c.foreigners_number, 
+    c.foreigners_percentage,
+    ROUND((c.foreigners_number / c.squad_size) * 100, 2) AS calculated_foreigners_percentage,
+    CASE 
+        WHEN c.foreigners_percentage > 50 THEN 'High'
+        WHEN c.foreigners_percentage > 20 THEN 'Moderate'
+        ELSE 'Low'
+    END AS foreigners_level,
+    comp.name AS competition_name,
+    comp.type AS competition_type
+FROM 
+    Clubs c
+LEFT JOIN 
+    Competitions comp ON c.domestic_competition_id = comp.competition_id
+WHERE 
+    c.foreigners_number > 0 
+    AND c.foreigners_percentage > 0
+ORDER BY 
+    calculated_foreigners_percentage DESC;
+## **Thống kê thông tin tổng quan giá thị trường, câu lạc bộ, cầu thủ**
+
+```sql
+SELECT 
+    c.club_id, 
+    c.name AS club_name, 
+    COUNT(DISTINCT p.player_id) AS total_players,   
+    SUM(NVL(p.market_value_in_eur, 0)) AS total_market_value,    
+    AVG(NVL(p.market_value_in_eur, 0)) AS avg_market_value,
+    COUNT(DISTINCT CASE WHEN NVL(a.goals, 0) > 0 THEN p.player_id END) AS players_with_goals
+FROM 
+    Players p
+RIGHT JOIN 
+    Clubs c ON c.club_id = p.current_club_id
+LEFT JOIN 
+    Appearance a ON p.player_id = a.player_id
+GROUP BY 
+    c.club_id, 
+    c.name
+ORDER BY 
+    total_market_value DESC, 
+    c.name;
+## **Thống kê số thẻ vàng và thẻ đỏ**
+
+```sql
+SELECT 
+    c.competition_id,
+    c.name AS competition_name,
+    NVL(SUM(a.yellow_cards), 0) AS total_yellow_cards,
+    NVL(SUM(a.red_cards), 0) AS total_red_cards,
+    COUNT(DISTINCT a.player_id) AS total_players
+FROM 
+    Competitions c
+FULL JOIN 
+    Appearance a ON c.competition_id = a.competition_id
+GROUP BY 
+    c.competition_id,
+    c.name
+ORDER BY 
+    total_yellow_cards DESC, 
+    total_red_cards DESC;
